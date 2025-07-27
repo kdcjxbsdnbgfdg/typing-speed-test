@@ -41,7 +41,6 @@ main(int argc, char *argv[])
 				} else {
 				printf("\e[D");
 				printf("\e[96m");
-				sjdfnsjfnbjn
 				putc(text_str[cursorPos], stdout);
 				printf("\e[D");
 				printf("\e[0m");
