@@ -39,6 +39,7 @@ main(int argc, char *argv[])
 	/* main loop :3 */
 	unsigned int cursorPos = 0;
 
+	char *typedString = malloc(strlen(text_str));
 
 	while (1){
 		int c = getc(stdin);
@@ -64,6 +65,7 @@ main(int argc, char *argv[])
 		}
 		/* space in ascii is 32, all the non text chars are before 32 */
 		else if (c >= ' ') {
+			typedString[cursorPos] = c;
 			if (cursorPos == 0){
 				clock_gettime(CLOCK_MONOTONIC, &startTime);
 				startTimeInt = startTime.tv_sec;
@@ -82,14 +84,19 @@ main(int argc, char *argv[])
 				clock_gettime(CLOCK_MONOTONIC, &endTime);
 				endTimeInt = endTime.tv_sec;
 				endNanoSecond = endTime.tv_nsec;
-				int nanoSeconds = endNanoSecond = startNanoSecond;
-				/* nano prefix is 10^-9, log10 of 1 is 0 so we use 8 instead */
-				int zeros = 8 - ((int) log10f((float) nanoSeconds));
-				char *zerosString = malloc(11);
-				for(int i = zeros; i > 0; i--){
-					strcat(zerosString, "0");
+				int nanoSeconds = endNanoSecond - startNanoSecond;
+				/* log10 of 1 is 0, log10 of 10 is 1 */
+				int numLength = 1 + ((int) log10f((float) nanoSeconds));
+				static char *zerosString = "000000000";
+				printf("\nTime: %u.%s%u seconds", endTimeInt - startTimeInt, &zerosString[numLength], nanoSeconds);
+				int correctCount = 0;
+				for(int i = 0; i < strlen(text_str); i++){
+					if (text_str[i] == typedString[i]){
+						correctCount++;
+					}
 				}
-				printf("\nTime: %u.%s%u", endTimeInt - startTimeInt, zerosString, nanoSeconds);
+				printf("\nAccuracy: %f%%", 100 * (float) correctCount / strlen(text_str));
+				printf("\nTypos: %ld", strlen(text_str) - correctCount);
 				break;
 			}
 		}
