@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <string.h>
+#include <time.h>
+#include <math.h>
 
-const char *text_str = "Income before securities transactions was up 10.8 percent from $13.49 million in 1982 to $14.95 million in 1983. Earnings per share (adjusted for a 10.5 percent stock dividend distributed on August 26) advanced 10 percent to $2.39 in 1983 from $2.17 in 1982. Earnings may rise for 7 years. Hopefully, earnings per share will grow another 10 percent. Kosy, Klemin, and Bille began selling on May 23, 1964. Their second store was founded in Renton on August 3, 1965. From 1964 to 1984, they opened more than 50 stores through-out the country. As they expanded, 12 regional offices had to be organized. Each of these 12 regional offices had to be organized. Each of these 12 regions employs from 108 to 578 people. National headquarters employs 1,077 people. Carole owns 118 stores located in 75 cities ranging as far west as Seattle and as far east as Boston. She owns 46 stores south of the Mason-Dixon line and 24 stores north of Denver. Carole buys goods from 89 companies located in 123 countries and all 50 states. Carole started in business on March 3, 1975. She had less than $6,000 in capital assets.";
+const char *text_str = "Income before securities transactions was up 10.8 percent from $13.49 million in 1982 to $14.95 million in 1983.";
 
 int
 main(int argc, char *argv[])
@@ -18,6 +22,13 @@ main(int argc, char *argv[])
 	ioctl(0, TIOCGWINSZ, &termsize);
 	int xSize = termsize.ws_col;
 
+	struct timespec startTime;
+	struct timespec endTime;
+	unsigned int startTimeInt;
+	unsigned int endTimeInt;
+	unsigned int startNanoSecond;
+	unsigned int endNanoSecond;
+
 	/* print the text */
 	printf("press escape to exit\n");
 	printf("\e[s");
@@ -27,37 +38,64 @@ main(int argc, char *argv[])
 	printf("\e[u");
 	/* main loop :3 */
 	unsigned int cursorPos = 0;
+
+
 	while (1){
 		int c = getc(stdin);
 		if (c == '') break;
 		if (c == '') {
 			if(cursorPos > 0) {
-				cursorPos--;
-				if (cursorPos % xSize == 0 && cursorPos != 0){
-					/* moves the cursor up, then to the very right, and makes the text coloured */
-					printf("\e[F\e[%uG\e[96m", xSize);
-					putc(text_str[cursorPos], stdout);
+				if (cursorPos % xSize == 0){
+					/* moves the cursor to the previous line */
+					printf("\e[A\e[%uG\e[96m", xSize);
+					putc(text_str[cursorPos - 1], stdout);
 					printf("\e[0m");
+					// here bc printing moves it forwards, and moving it back the other way doesnt play nice
+					printf("\e[%uG", xSize);
 				} else {
-				printf("\e[D");
-				printf("\e[96m");
-				putc(text_str[cursorPos], stdout);
-				printf("\e[D");
-				printf("\e[0m");
+					printf("\e[D");
+					printf("\e[96m");
+					putc(text_str[cursorPos - 1], stdout);
+					printf("\e[D");
+					printf("\e[0m");
 				}
+				cursorPos--;
 			}
 		}
-		else {
+		/* space in ascii is 32, all the non text chars are before 32 */
+		else if (c >= ' ') {
+			if (cursorPos == 0){
+				clock_gettime(CLOCK_MONOTONIC, &startTime);
+				startTimeInt = startTime.tv_sec;
+				startNanoSecond = startTime.tv_nsec;
+			}
 			if (c != text_str[cursorPos]){
-				printf("\e[31m");
+				printf("\e[41m");
 			}
 			putc(c, stdout);
 			printf("\e[0m");
+			if ((cursorPos + 1) % xSize == 0){
+				printf("\e[B\e[G");
+			}
 			cursorPos++;
+			if (cursorPos == strlen(text_str)){
+				clock_gettime(CLOCK_MONOTONIC, &endTime);
+				endTimeInt = endTime.tv_sec;
+				endNanoSecond = endTime.tv_nsec;
+				int nanoSeconds = endNanoSecond = startNanoSecond;
+				/* nano prefix is 10^-9, log10 of 1 is 0 so we use 8 instead */
+				int zeros = 8 - ((int) log10f((float) nanoSeconds));
+				char *zerosString = malloc(11);
+				for(int i = zeros; i > 0; i--){
+					strcat(zerosString, "0");
+				}
+				printf("\nTime: %u.%s%u", endTimeInt - startTimeInt, zerosString, nanoSeconds);
+				break;
+			}
 		}
-
 	}
-
+	/* moves the cursor down after so the text isnt overlapping */
+	printf("\e[%uB", (int) (strlen(text_str) / termsize.ws_col) - (int) (cursorPos / termsize.ws_col)); 
 	tcsetattr(0, 0, &attr);
 	return 0;
 }
