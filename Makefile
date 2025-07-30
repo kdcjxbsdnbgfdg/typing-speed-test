@@ -1,2 +1,2 @@
 make:
-	gcc -o typingTest main.c -lm
+	gcc -o typingTest -g main.c -lm

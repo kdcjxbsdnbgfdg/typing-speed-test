@@ -31,16 +31,17 @@ main(int argc, char *argv[])
 
 	/* print the text */
 	printf("press escape to exit\n");
+	/* saves the cursor pos before printing the text so it can return after */
 	printf("\e[s");
 	printf("\e[96m%s\e[0m\n", text_str);
 
 	/* put cursor back */ 
 	printf("\e[u");
-	/* main loop :3 */
 	unsigned int cursorPos = 0;
 
-	char *typedString = malloc(strlen(text_str));
+	char *typedString = malloc(strlen(text_str) + 1);
 
+	/* main loop :3 */
 	while (1){
 		int c = getc(stdin);
 		if (c == '') break;
@@ -81,28 +82,50 @@ main(int argc, char *argv[])
 			}
 			cursorPos++;
 			if (cursorPos == strlen(text_str)){
-				clock_gettime(CLOCK_MONOTONIC, &endTime);
-				endTimeInt = endTime.tv_sec;
-				endNanoSecond = endTime.tv_nsec;
-				int nanoSeconds = endNanoSecond - startNanoSecond;
-				/* log10 of 1 is 0, log10 of 10 is 1 */
-				int numLength = 1 + ((int) log10f((float) nanoSeconds));
-				static char *zerosString = "000000000";
-				printf("\nTime: %u.%s%u seconds", endTimeInt - startTimeInt, &zerosString[numLength], nanoSeconds);
-				int correctCount = 0;
-				for(int i = 0; i < strlen(text_str); i++){
-					if (text_str[i] == typedString[i]){
-						correctCount++;
-					}
-				}
-				printf("\nAccuracy: %f%%", 100 * (float) correctCount / strlen(text_str));
-				printf("\nTypos: %ld", strlen(text_str) - correctCount);
 				break;
 			}
 		}
 	}
 	/* moves the cursor down after so the text isnt overlapping */
 	printf("\e[%uB", (int) (strlen(text_str) / termsize.ws_col) - (int) (cursorPos / termsize.ws_col)); 
+	clock_gettime(CLOCK_MONOTONIC, &endTime);
+	endTimeInt = endTime.tv_sec;
+	endNanoSecond = endTime.tv_nsec;
+	// 5.4 - 3.6 (= 1.8)
+	// 5 - 3 = 2
+	// 0.4 is smaller than 0.6
+	// so we need to take the 1 from the int to make it go from 2 to 1
+	// 1.4 - 0.6 = 0.8
+	int seconds = endTimeInt - startTimeInt;
+	if (endNanoSecond < startNanoSecond){
+		seconds--;
+		endNanoSecond = endNanoSecond + 1000000000;
+	}
+	int nanoSeconds = endNanoSecond - startNanoSecond;
+	/* log10 of 1 is 0, log10 of 10 is 1 */
+	int numLength = 1 + ((int) log10f((float) nanoSeconds));
+	double nanoSecondsAsSeconds = nanoSeconds / pow(10, numLength);
+	static char zerosString[10] = "000000000";
+	//printf("\nTime: %u.%s%u seconds", seconds, &zerosString[numLength], nanoSeconds);
+	printf("\nTime %lf", seconds + nanoSecondsAsSeconds);
+	// Todo find a way to reduce the size of typed string, maybe just use the size of cursorPos as the test ends
+	// as that should be the max the text goes
+	// right now it counts the size of the entire text, even if the person isnt finished, or pressed escape
+	// this leads to the program sayings theres more typos
+	int correctCount = 0;
+	//for(int i = 0; i < strlen(typedString); i++){
+	for(int i = 0; i < cursorPos; i++){
+		if (text_str[i] == typedString[i]){
+			correctCount++;
+		}
+	}
+	printf("\nAccuracy: %f%%", 100 * (float) correctCount / cursorPos);
+	printf("\nTypos: %u", cursorPos - correctCount);
+	/* simply words divided by minutes (seconds as a dobule divided by 60) */
+	printf("\nWPM: %lf", ((double)correctCount / 5) / ((double)(seconds + nanoSecondsAsSeconds) / 60)); 
+	//printf("\nnanoseconds: %lf", (nanoSecondsAsSeconds));
+	//printf("\nnanosecondsInt: %d", nanoSeconds);
+	//printf("\nCorrect Characters: %d", correctCount);
 	tcsetattr(0, 0, &attr);
 	return 0;
 }
