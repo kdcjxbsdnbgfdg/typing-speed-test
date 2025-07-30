@@ -6,11 +6,22 @@
 #include <time.h>
 #include <math.h>
 
-const char *text_str = "Income before securities transactions was up 10.8 percent from $13.49 million in 1982 to $14.95 million in 1983.";
+char text_str[300];
 
 int
 main(int argc, char *argv[])
 {
+	char count[10];
+	FILE *filepointer = fopen("tests.txt", "r");
+	fgets(count, 9, filepointer);
+	// i dont really know why mod (N + 1) adds a bound to the rng
+	srand(time(NULL));
+	int tests = rand() % (atoi(count) + 1);
+	for(int i = 0; i < tests; i++){
+		fgets(text_str, 300, filepointer);
+	}
+	fclose(filepointer);
+
 	struct termios attr, new_attr;
 	tcgetattr(0, &attr);
 	new_attr = attr;
@@ -108,10 +119,6 @@ main(int argc, char *argv[])
 	static char zerosString[10] = "000000000";
 	//printf("\nTime: %u.%s%u seconds", seconds, &zerosString[numLength], nanoSeconds);
 	printf("\nTime %lf", seconds + nanoSecondsAsSeconds);
-	// Todo find a way to reduce the size of typed string, maybe just use the size of cursorPos as the test ends
-	// as that should be the max the text goes
-	// right now it counts the size of the entire text, even if the person isnt finished, or pressed escape
-	// this leads to the program sayings theres more typos
 	int correctCount = 0;
 	//for(int i = 0; i < strlen(typedString); i++){
 	for(int i = 0; i < cursorPos; i++){
